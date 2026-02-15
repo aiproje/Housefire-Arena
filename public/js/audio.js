@@ -15,6 +15,9 @@ class AudioManager {
         this.sfxVolume = 0.5;
         this.musicVolume = 0.3;
         
+        this.soundsLoaded = false;
+        this.soundLoadPromise = null;
+        
         this.init();
     }
     
@@ -36,8 +39,11 @@ class AudioManager {
             this.musicGain.gain.value = this.musicVolume;
             this.musicGain.connect(this.masterGain);
             
-            // Ses dosyalarini yukle
-            this.loadSounds();
+            // Ses dosyalarini yukle (async)
+            this.soundLoadPromise = this.loadSounds().then(() => {
+                this.soundsLoaded = true;
+                console.log('Ses dosyalari yuklendi');
+            });
             
             // Sesleri olustur
             this.createSounds();
@@ -73,7 +79,12 @@ class AudioManager {
     }
     
     // Ses dosyasi cal
-    playBuffer(name) {
+    async playBuffer(name) {
+        // Sesler yüklenene kadar bekle
+        if (this.soundLoadPromise && !this.soundsLoaded) {
+            await this.soundLoadPromise;
+        }
+        
         if (!this.soundBuffers[name]) return;
         
         const source = this.context.createBufferSource();

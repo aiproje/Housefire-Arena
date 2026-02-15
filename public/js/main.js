@@ -258,6 +258,11 @@ class Game {
         // Bot atislari
         this.handleBotShooting();
         
+        // Dark mode bot görünürlük kontrolü
+        if (this.state.darkMode) {
+            this.updateBotVisibility();
+        }
+        
         // Mermileri guncelle
         this.weaponSystem.update(this.map.getWalls(), this.botManager.bots, this.player, this.effects);
         
@@ -460,22 +465,53 @@ class Game {
                     }
                 }
             }
+            
+            // Bot atış sesi - silah türüne göre
+            if (result && result.shot) {
+                const weaponType = bot.weaponType || 'pistol';
+                let soundName;
+                switch (weaponType) {
+                    case 'pistol':
+                        soundName = 'pistol';
+                        break;
+                    case 'shotgun':
+                        soundName = 'shotgun';
+                        break;
+                    case 'rifle':
+                        soundName = 'rifle';
+                        break;
+                    case 'sniper':
+                        soundName = 'sniper';
+                        break;
+                    default:
+                        soundName = 'pistol';
+                }
+                audioManager.play(soundName);
+            }
         });
     }
     
     // Oyuncu olumu
     handlePlayerDeath() {
-        // Respawn overlay goster
-        uiManager.showRespawnOverlay(true, CONFIG.RESPAWN_TIME);
+        let remainingTime = CONFIG.RESPAWN_TIME;
         
-        // Respawn timer
-        setTimeout(() => {
-            if (this.state.isPlaying) {
-                this.player.respawn(SPAWN_POINTS);
-                uiManager.showRespawnOverlay(false);
-                uiManager.updateHealthBar(this.player.health, this.player.maxHealth);
+        // Respawn overlay goster
+        uiManager.showRespawnOverlay(true, remainingTime);
+        
+        // Countdown timer
+        const countdown = setInterval(() => {
+            remainingTime--;
+            if (remainingTime > 0) {
+                uiManager.showRespawnOverlay(true, remainingTime);
+            } else {
+                clearInterval(countdown);
+                if (this.state.isPlaying) {
+                    this.player.respawn(SPAWN_POINTS);
+                    uiManager.showRespawnOverlay(false);
+                    uiManager.updateHealthBar(this.player.health, this.player.maxHealth);
+                }
             }
-        }, CONFIG.RESPAWN_TIME * 1000);
+        }, 1000);
     }
     
     // Magaza
@@ -536,6 +572,37 @@ class Game {
         
         // UI
         uiManager.showDarkModeIndicator(enabled);
+    }
+    
+    // Dark mode bot görünürlük kontrolü
+    updateBotVisibility() {
+        const FLASHLIGHT_RANGE = 15;  // Fener menzili
+        const playerPos = this.player.position;
+        
+        this.botManager.bots.forEach(bot => {
+            if (!bot.isAlive || !bot.mesh) return;
+            
+            const distance = playerPos.distanceTo(bot.position);
+            
+            // Oyuncu fener menzilinde ve görüş hattında ise görünür
+            if (distance < FLASHLIGHT_RANGE) {
+                // Basit görüş hattı kontrolü - duvar yoksa görünür
+                const direction = new THREE.Vector3().subVectors(bot.position, playerPos).normalize();
+                const raycaster = new THREE.Raycaster(playerPos, direction, 0, distance);
+                const walls = this.map.getWalls();
+                const intersects = raycaster.intersectObjects(walls, true);
+                
+                // Duvar yoksa görünür
+                if (intersects.length === 0) {
+                    bot.mesh.visible = true;
+                } else {
+                    bot.mesh.visible = false;
+                }
+            } else {
+                // Fener menzilinde değilse görünmez
+                bot.mesh.visible = false;
+            }
+        });
     }
     
     // Pencere boyutu

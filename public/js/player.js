@@ -67,23 +67,25 @@ class Player {
         torso.castShadow = true;
         this.mesh.add(torso);
         
-        // Sol kol
+        // Sol kol - silah tutan kol yukarıda
         const leftArm = new THREE.Mesh(
             new THREE.BoxGeometry(0.2, 0.7, 0.2),
             new THREE.MeshStandardMaterial({ color: 0x00ff88, roughness: 0.7 })
         );
-        leftArm.position.set(-0.5, 0.85, 0);
+        leftArm.position.set(-0.5, 1.1, 0);  // Omuz seviyesi
         leftArm.castShadow = true;
         this.mesh.add(leftArm);
+        this.leftArm = leftArm;
         
-        // Sag kol
+        // Sag kol - destek kol
         const rightArm = new THREE.Mesh(
             new THREE.BoxGeometry(0.2, 0.7, 0.2),
             new THREE.MeshStandardMaterial({ color: 0x00ff88, roughness: 0.7 })
         );
-        rightArm.position.set(0.5, 0.85, 0);
+        rightArm.position.set(0.5, 1.0, 0);  // Omuz seviyesi
         rightArm.castShadow = true;
         this.mesh.add(rightArm);
+        this.rightArm = rightArm;
         
         // Sol bacak
         const leftLeg = new THREE.Mesh(
@@ -117,7 +119,7 @@ class Player {
             roughness: 0.3
         });
         this.weaponMesh = new THREE.Mesh(weaponGeo, weaponMat);
-        this.weaponMesh.position.set(0.4, 0.3, 0.3);
+        this.weaponMesh.position.set(0.4, 1.0, 0.3);  // Göz hizasında nişan
         this.mesh.add(this.weaponMesh);
     }
     

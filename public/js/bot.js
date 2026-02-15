@@ -33,6 +33,8 @@ class Bot {
         this.stateTimer = 0;
         this.patrolTarget = null;
         this.lastKnownTargetPos = null;
+        this.coverPoint = null;  // Cover system
+        this.flankingAngle = 0;  // Flanking için
         
         // Ates
         this.lastShot = 0;
@@ -82,23 +84,25 @@ class Bot {
         torso.castShadow = true;
         this.mesh.add(torso);
         
-        // Sol kol
+        // Sol kol - silah tutan kol yukarıda
         const leftArm = new THREE.Mesh(
             new THREE.BoxGeometry(0.2, 0.7, 0.2),
             new THREE.MeshStandardMaterial({ color: this.color, roughness: 0.7 })
         );
-        leftArm.position.set(-0.5, 0.85, 0);
+        leftArm.position.set(-0.5, 1.1, 0);  // Omuz seviyesi
         leftArm.castShadow = true;
         this.mesh.add(leftArm);
+        this.leftArm = leftArm;
         
-        // Sag kol
+        // Sag kol - destek kol
         const rightArm = new THREE.Mesh(
             new THREE.BoxGeometry(0.2, 0.7, 0.2),
             new THREE.MeshStandardMaterial({ color: this.color, roughness: 0.7 })
         );
-        rightArm.position.set(0.5, 0.85, 0);
+        rightArm.position.set(0.5, 1.0, 0);  // Omuz seviyesi
         rightArm.castShadow = true;
         this.mesh.add(rightArm);
+        this.rightArm = rightArm;
         
         // Sol bacak
         const leftLeg = new THREE.Mesh(
@@ -118,7 +122,35 @@ class Bot {
         rightLeg.castShadow = true;
         this.mesh.add(rightLeg);
         
+        // Bot silahı - nişan pozisyonunda
+        this.createWeaponMesh();
+        
         this.scene.add(this.mesh);
+    }
+    
+    // Bot silah mesh'i oluştur
+    createWeaponMesh() {
+        const weaponGeo = new THREE.BoxGeometry(0.15, 0.15, 0.5);
+        const weaponMat = new THREE.MeshStandardMaterial({ color: 0x333333, roughness: 0.5 });
+        this.weaponMesh = new THREE.Mesh(weaponGeo, weaponMat);
+        this.weaponMesh.position.set(0.4, 1.2, 0.3);  // Göz hizasında nişan
+        this.weaponMesh.castShadow = true;
+        this.mesh.add(this.weaponMesh);
+        
+        // Muzzle flash için ışık noktası
+        this.muzzleLight = new THREE.PointLight(0xffaa00, 0, 5);
+        this.muzzleLight.position.set(0.4, 1.2, 0.6);
+        this.mesh.add(this.muzzleLight);
+    }
+    
+    // Muzzle flash efekti
+    showMuzzleFlash() {
+        if (this.muzzleLight) {
+            this.muzzleLight.intensity = 2;
+            setTimeout(() => {
+                if (this.muzzleLight) this.muzzleLight.intensity = 0;
+            }, 50);
+        }
     }
     
     createHealthBar() {
@@ -345,27 +377,108 @@ class Bot {
         const targetPos = this.target.position;
         const dist = this.position.distanceTo(targetPos);
         
-        // Hedefe don
-        const dir = new THREE.Vector3().subVectors(targetPos, this.position);
-        this.rotation = Math.atan2(dir.x, dir.z);
-        
-        // Mesafeye gore hareket
-        if (dist > 10) {
-            // Yaklas
-            const moveDir = dir.normalize();
-            const speed = CONFIG.BOT_SPEED;
-            this.position.x += moveDir.x * speed;
-            this.position.z += moveDir.z * speed;
-        } else if (dist < 5) {
-            // Uzaklas
-            const moveDir = dir.normalize().negate();
-            const speed = CONFIG.BOT_SPEED * 0.5;
-            this.position.x += moveDir.x * speed;
-            this.position.z += moveDir.z * speed;
-        }
+        // AI davranışı - saldırı, cover, veya flanking
+        this.updateAIBehavior(deltaTime, targetPos, dist, walls);
         
         // Ates et
         this.tryShoot(dist);
+    }
+    
+    // AI davranış güncellemesi
+    updateAIBehavior(deltaTime, targetPos, dist, walls) {
+        // Cover noktası kontrolü veya flanking
+        if (!this.coverPoint || this.stateTimer > 3) {
+            this.findCoverPoint(targetPos, walls);
+        }
+        
+        // Cover noktasına git veya flanking yap
+        if (this.coverPoint) {
+            const coverDist = this.position.distanceTo(this.coverPoint);
+            if (coverDist > 1) {
+                // Cover'a hareket et
+                const dir = new THREE.Vector3().subVectors(this.coverPoint, this.position).normalize();
+                this.rotation = Math.atan2(dir.x, dir.z);
+                const speed = CONFIG.BOT_SPEED * 0.7;
+                this.position.x += dir.x * speed * deltaTime;
+                this.position.z += dir.z * speed * deltaTime;
+            } else {
+                // Cover'da bekle ve ara sıra peek yap
+                if (Math.random() < 0.02) {
+                    // Rastgele yönlere bak
+                    const angle = Math.random() * Math.PI * 2;
+                    this.rotation = Math.atan2(Math.sin(angle), Math.cos(angle));
+                }
+            }
+        } else {
+            // Flanking - hedefin yanlarına hareket et
+            this.handleFlanking(deltaTime, targetPos, dist);
+        }
+        
+        // Hedefe dönük kal
+        const lookDir = new THREE.Vector3().subVectors(targetPos, this.position);
+        this.rotation = Math.atan2(lookDir.x, lookDir.z);
+    }
+    
+    // Flanking davranışı
+    handleFlanking(deltaTime, targetPos, dist) {
+        // Hedefin yanına dairesel hareket
+        const angle = Math.atan2(targetPos.z - this.position.z, targetPos.x - this.position.x);
+        const flankingAngle = angle + (Math.random() > 0.5 ? Math.PI / 3 : -Math.PI / 3);
+        
+        let moveDir;
+        if (dist > 10) {
+            // Yaklaş
+            moveDir = new THREE.Vector3().subVectors(targetPos, this.position).normalize();
+        } else if (dist < 5) {
+            // Uzaklaş
+            moveDir = new THREE.Vector3().subVectors(targetPos, this.position).normalize().negate();
+        } else {
+            // Flanking hareketi
+            moveDir = new THREE.Vector3(Math.cos(flankingAngle), 0, Math.sin(flankingAngle));
+        }
+        
+        const speed = CONFIG.BOT_SPEED * 0.8;
+        this.position.x += moveDir.x * speed * deltaTime;
+        this.position.z += moveDir.z * speed * deltaTime;
+    }
+    
+    // Cover noktası bul
+    findCoverPoint(targetPos, walls) {
+        // Basit cover sistemi - duvar arkası nokta bul
+        if (!walls || walls.length === 0) {
+            this.coverPoint = null;
+            return;
+        }
+        
+        // Rastgele duvar seç ve arkasında nokta bul
+        const randomWall = walls[Math.floor(Math.random() * walls.length)];
+        if (randomWall && randomWall.position) {
+            const wallPos = randomWall.position;
+            const dirFromTarget = new THREE.Vector3().subVectors(wallPos, targetPos).normalize();
+            
+            this.coverPoint = new THREE.Vector3(
+                wallPos.x + dirFromTarget.x * 2,
+                0,
+                wallPos.z + dirFromTarget.z * 2
+            );
+        }
+    }
+    
+    // Waypoint sistemi için rastgele patrol noktası
+    getSmartPatrolPoint(mapSize) {
+        // Daha akıllı patrol - haritanın farklı bölgelerini gez
+        const quadrant = Math.floor(Math.random() * 4);
+        const halfSize = mapSize / 2 - 5;
+        let x, z;
+        
+        switch (quadrant) {
+            case 0: x = Math.random() * halfSize; z = Math.random() * halfSize; break;
+            case 1: x = -Math.random() * halfSize; z = Math.random() * halfSize; break;
+            case 2: x = Math.random() * halfSize; z = -Math.random() * halfSize; break;
+            case 3: x = -Math.random() * halfSize; z = -Math.random() * halfSize; break;
+        }
+        
+        return new THREE.Vector3(x, 0, z);
     }
     
     // Flee durumu
