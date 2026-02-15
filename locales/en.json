@@ -1,0 +1,90 @@
+{
+    "menu": {
+        "title": "HOUSEFIRE ARENA",
+        "subtitle": "SURVIVE. FIGHT. CONQUER.",
+        "startGame": "START GAME",
+        "selectWeapon": "SELECT WEAPON",
+        "language": "LANGUAGE",
+        "turkish": "Turkish",
+        "english": "English"
+    },
+    "controls": {
+        "title": "CONTROLS",
+        "move": "WASD - Move",
+        "aim": "Mouse - Aim",
+        "shoot": "Click - Shoot",
+        "weapons": "1-5 - Weapons",
+        "shop": "B - Shop",
+        "scoreboard": "Tab - Scoreboard",
+        "run": "Shift - Run",
+        "reload": "R - Reload",
+        "grenade": "G - Grenade"
+    },
+    "hud": {
+        "health": "HEALTH",
+        "time": "TIME",
+        "money": "MONEY",
+        "kills": "KILLS",
+        "deaths": "DEATHS",
+        "ammo": "AMMO"
+    },
+    "weapons": {
+        "pistol": "Pistol",
+        "shotgun": "Shotgun",
+        "sniper": "Sniper",
+        "rifle": "Assault Rifle",
+        "stick": "Stick",
+        "damage": "Damage",
+        "rate": "Fire Rate",
+        "range": "Range",
+        "ammo": "Ammo",
+        "melee": "Melee",
+        "short": "Short",
+        "medium": "Medium",
+        "long": "Long",
+        "fast": "Fast",
+        "slow": "Slow",
+        "verySlow": "Very Slow",
+        "free": "FREE"
+    },
+    "shop": {
+        "title": "SHOP",
+        "close": "CLOSE (B)",
+        "health50": "Health Pack (+50)",
+        "health100": "Full Heal",
+        "helmet": "Helmet (-20% headshot damage)",
+        "grenade": "Grenade",
+        "ammoShotgun": "Shotgun Ammo",
+        "ammoSniper": "Sniper Ammo",
+        "ammoRifle": "Rifle Ammo",
+        "weaponShotgun": "Shotgun",
+        "weaponSniper": "Sniper Rifle",
+        "weaponRifle": "Assault Rifle",
+        "purchased": "Purchased: {name}",
+        "noMoney": "Not enough money!",
+        "noAmmo": "No ammo! Press B to buy",
+        "noGrenades": "No grenades! Press B to buy"
+    },
+    "game": {
+        "youDied": "YOU DIED",
+        "respawning": "Respawning in {time} seconds...",
+        "gameOver": "GAME OVER",
+        "winner": "WINNER",
+        "kills": "KILLS",
+        "yourStats": "YOUR STATS",
+        "playAgain": "PLAY AGAIN",
+        "lightsOut": "LIGHTS OUT - FLASHLIGHT ACTIVE"
+    },
+    "scoreboard": {
+        "title": "SCOREBOARD",
+        "player": "Player",
+        "kills": "Kills",
+        "deaths": "Deaths",
+        "money": "Money"
+    },
+    "notifications": {
+        "hit": "Hit!",
+        "kill": "Kill!",
+        "headshot": "Headshot!"
+    }
+}

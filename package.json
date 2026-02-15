@@ -1,0 +1,23 @@
+{
+  "name": "battle-house-3d",
+  "version": "1.0.0",
+  "description": "3D FPS Game with AI Bots - Battle in the House",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "socket.io": "^4.5.4"
+  },
+  "keywords": [
+    "threejs",
+    "fps",
+    "game",
+    "ai",
+    "multiplayer"
+  ],
+  "author": "",
+  "license": "MIT"
+}

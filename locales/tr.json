@@ -1,0 +1,90 @@
+{
+    "menu": {
+        "title": "HOUSEFIRE ARENA",
+        "subtitle": "HAYATTA KAL. SAVAS. FETHET.",
+        "startGame": "OYUNU BASLAT",
+        "selectWeapon": "SILAH SEC",
+        "language": "DIL",
+        "turkish": "Turkce",
+        "english": "Ingilizce"
+    },
+    "controls": {
+        "title": "KONTROLLER",
+        "move": "WASD - Hareket",
+        "aim": "Fare - Nisangah",
+        "shoot": "Tiklama - Ates",
+        "weapons": "1-5 - Silahlar",
+        "shop": "B - Magaza",
+        "scoreboard": "Tab - Skor Tablosu",
+        "run": "Shift - Kos",
+        "reload": "R - Sarjor",
+        "grenade": "G - Bomba"
+    },
+    "hud": {
+        "health": "CAN",
+        "time": "SURE",
+        "money": "PARA",
+        "kills": "OLDURME",
+        "deaths": "OLUM",
+        "ammo": "MERMI"
+    },
+    "weapons": {
+        "pistol": "Tabanca",
+        "shotgun": "Pompali",
+        "sniper": "Keskin Nisanci",
+        "rifle": "Saldiri Tufeegi",
+        "stick": "Sopa",
+        "damage": "Hasar",
+        "rate": "Atis Hizi",
+        "range": "Menzil",
+        "ammo": "Mermi",
+        "melee": "Yakin Dovus",
+        "short": "Kisa",
+        "medium": "Orta",
+        "long": "Uzun",
+        "fast": "Hizli",
+        "slow": "Yavas",
+        "verySlow": "Cok Yavas",
+        "free": "UCRETSIZ"
+    },
+    "shop": {
+        "title": "MAGAZA",
+        "close": "KAPAT (B)",
+        "health50": "Can Paketi (+50)",
+        "health100": "Tam Can Yenileme",
+        "helmet": "Kask (-%20 bas hasari)",
+        "grenade": "Bomba",
+        "ammoShotgun": "Pompali Mermisi",
+        "ammoSniper": "Keskin Nisanci Mermisi",
+        "ammoRifle": "Tufek Mermisi",
+        "weaponShotgun": "Pompali Tufek",
+        "weaponSniper": "Keskin Nisanci Tufeegi",
+        "weaponRifle": "Saldiri Tufeegi",
+        "purchased": "Satin alindi: {name}",
+        "noMoney": "Yeterli paraniz yok!",
+        "noAmmo": "Mermi yok! B'ye basin",
+        "noGrenades": "Bomba yok! B'ye basin"
+    },
+    "game": {
+        "youDied": "OLDUN",
+        "respawning": "Yeniden doguyor {time} saniye...",
+        "gameOver": "OYUN BITTI",
+        "winner": "KAZANAN",
+        "kills": "Oldurme",
+        "yourStats": "ISTATISTIKLERIN",
+        "playAgain": "TEKRAR OYNA",
+        "lightsOut": "ISIKLAR KAPANDI - FENER AKTIF"
+    },
+    "scoreboard": {
+        "title": "SKOR TABLOSU",
+        "player": "Oyuncu",
+        "kills": "Oldurme",
+        "deaths": "Olum",
+        "money": "Para"
+    },
+    "notifications": {
+        "hit": "Vurdu!",
+        "kill": "Oldurdu!",
+        "headshot": "Kafa Vurusu!"
+    }
+}

@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Housefire Arena</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@400;500;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Main Menu -->
+    <div id="mainMenu" class="menu-screen">
+        <div class="menu-content">
+            <h1 class="game-title" data-i18n="menu.title">HOUSEFIRE ARENA</h1>
+            <p class="subtitle" data-i18n="menu.subtitle">HAYATTA KAL. SAVAS. FETHET.</p>
+            
+            <div class="menu-buttons">
+                <button id="startGameBtn" class="menu-btn primary" data-i18n="menu.startGame">OYUNU BASLAT</button>
+            </div>
+            
+            <!-- Dil Secici -->
+            <div class="language-selector">
+                <label data-i18n="menu.language">DIL:</label>
+                <select id="languageSelect">
+                    <option value="tr">Türkçe</option>
+                    <option value="en">English</option>
+                </select>
+            </div>
+            
+            <div class="controls-info">
+                <h3 data-i18n="controls.title">KONTROLLER</h3>
+                <p data-i18n="controls.move">WASD - Hareket</p>
+                <p data-i18n="controls.aim">Fare - Nisangah</p>
+                <p data-i18n="controls.shoot">Tiklama - Ates</p>
+                <p data-i18n="controls.weapons">1-5 - Silahlar</p>
+                <p data-i18n="controls.shop">B - Magaza</p>
+                <p data-i18n="controls.scoreboard">Tab - Skor Tablosu</p>
+                <p data-i18n="controls.run">Shift - Kos</p>
+                <p data-i18n="controls.grenade">G - Bomba</p>
+            </div>
+        </div>
+        
+        <div class="menu-background">
+            <div class="grid-lines"></div>
+            <div class="particles">
+                <div class="particle"></div>
+                <div class="particle"></div>
+                <div class="particle"></div>
+                <div class="particle"></div>
+                <div class="particle"></div>
+                <div class="particle"></div>
+                <div class="particle"></div>
+                <div class="particle"></div>
+                <div class="particle"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Game HUD -->
+    <div id="gameHUD" class="hud hidden">
+        <!-- Top Bar -->
+        <div class="hud-top">
+            <div class="health-container">
+                <div class="health-bar">
+                    <div class="health-fill" id="healthFill"></div>
+                </div>
+                <span class="health-text" id="healthText">100 / 100</span>
+            </div>
+            
+            <div class="timer-container">
+                <span class="timer-label" data-i18n="hud.time">SURE</span>
+                <span class="timer-value" id="gameTimer">5:00</span>
+            </div>
+        </div>
+        
+        <!-- Center -->
+        <div class="hud-center">
+            <div class="crosshair" id="crosshair"></div>
+            <div class="hit-marker" id="hitMarker">+</div>
+        </div>
+        
+        <!-- Bottom -->
+        <div class="hud-bottom">
+            <div class="money-display">
+                <span class="money-icon">$</span>
+                <span class="money-value" id="moneyValue">0</span>
+            </div>
+            
+            <div class="weapon-display">
+                <div class="current-weapon" id="currentWeapon">
+                    <span class="weapon-name" id="weaponName">Pistol</span>
+                    <span class="ammo-display" id="ammoDisplay">8</span>
+                </div>
+            </div>
+            
+            <div class="kills-display">
+                <span class="kills-label" data-i18n="hud.kills">OLDURME</span>
+                <span class="kills-value" id="killsValue">0</span>
+            </div>
+        </div>
+        
+        <!-- Respawn Overlay -->
+        <div class="respawn-overlay hidden" id="respawnOverlay">
+            <div class="respawn-content">
+                <h2 data-i18n="game.youDied">OLDUN</h2>
+                <p data-i18n="game.respawning">Yeniden doguyor <span id="respawnTimer">3</span> saniye...</p>
+            </div>
+        </div>
+        
+        <!-- Dark Mode Indicator -->
+        <div class="dark-mode-indicator hidden" id="darkModeIndicator">
+            <span data-i18n="game.lightsOut">ISIKLAR KAPANDI - FENER AKTIF</span>
+        </div>
+    </div>
+
+    <!-- Shop UI -->
+    <div id="shopUI" class="shop-container hidden">
+        <div class="shop-header">
+            <h2 data-i18n="shop.title">MAGAZA</h2>
+            <span class="shop-money" id="shopMoney">$0</span>
+        </div>
+        
+        <div class="shop-grid" id="shopGrid">
+            <!-- Items populated by JS -->
+        </div>
+        
+        <button class="close-shop" id="closeShop" data-i18n="shop.close">KAPAT (B)</button>
+    </div>
+
+    <!-- Scoreboard -->
+    <div id="scoreboard" class="scoreboard hidden">
+        <h2 data-i18n="scoreboard.title">SKOR TABLOSU</h2>
+        <table id="scoreTable">
+            <thead>
+                <tr>
+                    <th data-i18n="scoreboard.player">Oyuncu</th>
+                    <th data-i18n="scoreboard.kills">Oldurme</th>
+                    <th data-i18n="scoreboard.deaths">Olum</th>
+                    <th data-i18n="scoreboard.money">Para</th>
+                </tr>
+            </thead>
+            <tbody id="scoreBody">
+                <!-- Populated by JS -->
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Game End Screen -->
+    <div id="gameEnd" class="menu-screen hidden">
+        <div class="game-end-content">
+            <h1 data-i18n="game.gameOver">OYUN BITTI</h1>
+            <div class="winner-display">
+                <h2 data-i18n="game.winner">KAZANAN</h2>
+                <span class="winner-name" id="winnerName">-</span>
+                <span class="winner-kills" id="winnerKills">0 KILLS</span>
+            </div>
+            
+            <div class="final-stats">
+                <h3 data-i18n="game.yourStats">ISTATISTIKLERIN</h3>
+                <p>Kills: <span id="finalKills">0</span></p>
+                <p>Deaths: <span id="finalDeaths">0</span></p>
+                <p>Money Earned: $<span id="finalMoney">0</span></p>
+            </div>
+            
+            <button id="playAgain" class="menu-btn primary" data-i18n="game.playAgain">TEKRAR OYNA</button>
+        </div>
+    </div>
+
+    <!-- Three.js Canvas Container -->
+    <div id="gameContainer"></div>
+
+    <!-- Three.js Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    
+    <!-- Game Modules -->
+    <script src="js/config.js"></script>
+    <script src="js/i18n.js"></script>
+    <script src="js/input.js"></script>
+    <script src="js/audio.js"></script>
+    <script src="js/camera.js"></script>
+    <script src="js/effects.js"></script>
+    <script src="js/weapons.js"></script>
+    <script src="js/shop.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/map.js"></script>
+    <script src="js/player.js"></script>
+    <script src="js/bot.js"></script>
+    <script src="js/main.js"></script>
+</body>
+</html>
