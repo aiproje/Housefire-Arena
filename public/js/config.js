@@ -14,15 +14,15 @@ const CONFIG = {
     CAMERA_ANGLE: 45, // derece
     
     // Bot ayarlari
-    BOT_COUNT: 6,
-    BOT_SPEED: 0.08,
-    BOT_RUN_SPEED: 0.12,
+    BOT_COUNT: 8,
+    BOT_SPEED: 0.1,
+    BOT_RUN_SPEED: 0.15,
     BOT_HEIGHT: 1.8,
     BOT_RADIUS: 0.4,
     BOT_RESPAWN_TIME: 3000, // ms
-    BOT_VIEW_RANGE: 30,
-    BOT_ATTACK_RANGE: 20,
-    BOT_ACCURACY: 0.4,
+    BOT_VIEW_RANGE: 35,
+    BOT_ATTACK_RANGE: 25,
+    BOT_ACCURACY: 0.5,
     
     // Oyun ayarlari
     GAME_TIME: 300, // saniye
@@ -230,7 +230,7 @@ const ROOM_LAYOUT = [
     { x: 2, z: 10, w: 8, h: 6, name: 'garage', doors: ['north'] }
 ];
 
-// Spawn noktalari
+// Spawn noktalari - daha fazla nokta
 const SPAWN_POINTS = [
     { x: -15, z: -15 },
     { x: 15, z: -15 },
@@ -239,17 +239,28 @@ const SPAWN_POINTS = [
     { x: 0, z: -15 },
     { x: 0, z: 15 },
     { x: -8, z: 0 },
-    { x: 8, z: 0 }
+    { x: 8, z: 0 },
+    { x: -12, z: -8 },
+    { x: 12, z: -8 },
+    { x: -12, z: 8 },
+    { x: 12, z: 8 },
+    { x: 0, z: 0 },
+    { x: -5, z: -5 },
+    { x: 5, z: -5 },
+    { x: -5, z: 5 },
+    { x: 5, z: 5 }
 ];
 
-// Bot renkleri
+// Bot renkleri - daha fazla çeşitlilik
 const BOT_COLORS = [
     0xff0000,
     0xff4444,
     0xcc0000,
     0xaa0000,
     0x990000,
-    0x880000
+    0x880000,
+    0xff6600,
+    0xff3300
 ];
 
 // Export (ES6 modul sistemi)

@@ -242,7 +242,7 @@ class Bot {
                 this.handlePatrol(deltaTime, walls);
                 break;
             case BotState.ALERT:
-                this.handleAlert(deltaTime);
+                this.handleAlert(deltaTime, walls);
                 break;
             case BotState.COMBAT:
                 this.handleCombat(deltaTime, player, otherBots, walls);
@@ -259,41 +259,48 @@ class Bot {
         }
     }
     
-    // Hedef bul
+    // Hedef bul - oyuncu ve diğer botları değerlendir
     findTarget(player, otherBots, walls) {
         this.target = null;
         this.targetType = null;
         
-        // Oyuncu kontrolu
+        let bestTarget = null;
+        let bestScore = -Infinity;
+        
+        // Oyuncu kontrolü
         if (player && player.isAlive) {
             const dist = this.position.distanceTo(player.position);
             if (dist < this.viewRange && this.hasLineOfSight(player.position, walls)) {
-                this.target = player;
-                this.targetType = 'player';
-                return;
+                // Oyuncu öncelikli - yüksek skor
+                const score = 100 - dist; // Mesafe azaldıkça skor artar
+                if (score > bestScore) {
+                    bestScore = score;
+                    bestTarget = player;
+                    this.targetType = 'player';
+                }
             }
         }
         
-        // Diger botlari kontrol et
-        let closestBot = null;
-        let closestDist = Infinity;
-        
+        // Diğer botları kontrol et - viewRange içindeki tüm botları değerlendir
         otherBots.forEach(bot => {
             if (bot !== this && bot.isAlive) {
                 const dist = this.position.distanceTo(bot.position);
-                if (dist < this.attackRange && dist < closestDist) {
-                    if (this.hasLineOfSight(bot.position, walls)) {
-                        closestBot = bot;
-                        closestDist = dist;
+                // Görüş menzili içinde ve görüş hattı varsa
+                if (dist < this.viewRange && this.hasLineOfSight(bot.position, walls)) {
+                    // Bot skoru - mesafe ve can durumuna göre
+                    const healthFactor = 1 - (bot.health / bot.maxHealth) * 0.3; // Düşük canlı hedef öncelikli
+                    const score = (50 - dist * 0.5) * healthFactor;
+                    
+                    if (score > bestScore) {
+                        bestScore = score;
+                        bestTarget = bot;
+                        this.targetType = 'bot';
                     }
                 }
             }
         });
         
-        if (closestBot) {
-            this.target = closestBot;
-            this.targetType = 'bot';
-        }
+        this.target = bestTarget;
     }
     
     // Gorus hatti kontrolu
@@ -312,14 +319,21 @@ class Bot {
         return intersects.length === 0;
     }
     
-    // Idle durumu
+    // Idle durumu - etrafa bakınma ve kısa bekleme
     handleIdle(deltaTime) {
-        if (this.stateTimer > 2) {
+        // Etrafa bakın - rastgele yön değiştir
+        if (Math.random() < 0.03) {
+            this.rotation += (Math.random() - 0.5) * Math.PI * 0.5;
+        }
+        
+        // Kısa bekleme sonrası patrol'a geç
+        if (this.stateTimer > 1 + Math.random() * 2) {
             this.state = BotState.PATROL;
             this.stateTimer = 0;
             this.patrolTarget = this.getRandomPatrolPoint();
         }
         
+        // Hedef varsa combat'a geç
         if (this.target) {
             this.state = BotState.COMBAT;
             this.stateTimer = 0;
@@ -337,31 +351,93 @@ class Bot {
         // Patrol hedefine git
         if (this.patrolTarget) {
             const dist = this.position.distanceTo(this.patrolTarget);
-            if (dist < 1) {
+            if (dist < 1.5) {
+                // Hedefe ulaştı, yeni hedef belirle
                 this.patrolTarget = this.getRandomPatrolPoint();
+                // Kısa bekleme
+                this.stateTimer = 0;
             } else {
+                // Hedefe doğru hareket et
                 const dir = new THREE.Vector3().subVectors(this.patrolTarget, this.position).normalize();
                 this.rotation = Math.atan2(dir.x, dir.z);
+                
+                // Hareket et - patrol hızında
+                const speed = CONFIG.BOT_SPEED * 0.6;
+                const newX = this.position.x + dir.x * speed * deltaTime;
+                const newZ = this.position.z + dir.z * speed * deltaTime;
+                
+                // Basit collision kontrolü
+                if (!this.checkWallCollision(newX, newZ, walls)) {
+                    this.position.x = newX;
+                    this.position.z = newZ;
+                } else {
+                    // Duvar varsa yeni hedef belirle
+                    this.patrolTarget = this.getRandomPatrolPoint();
+                }
             }
+        } else {
+            // Hedef yoksa yeni hedef belirle
+            this.patrolTarget = this.getRandomPatrolPoint();
         }
         
-        // Rastgele donus
-        if (Math.random() < 0.01) {
-            this.rotation += (Math.random() - 0.5) * 0.5;
+        // Rastgele duraklama ve etrafa bakınma
+        if (Math.random() < 0.005) {
+            // Dur ve etrafa bak
+            this.state = BotState.IDLE;
+            this.stateTimer = 0;
         }
     }
     
-    // Alert durumu
-    handleAlert(deltaTime) {
+    // Duvar collision kontrolü
+    checkWallCollision(x, z, walls) {
+        if (!walls || walls.length === 0) return false;
+        
+        for (const wall of walls) {
+            const box = new THREE.Box3().setFromObject(wall);
+            // Bot yarıçapı kadar margin ekle
+            const margin = 0.5;
+            if (x >= box.min.x - margin && x <= box.max.x + margin &&
+                z >= box.min.z - margin && z <= box.max.z + margin) {
+                return true;
+            }
+        }
+        return false;
+    }
+    
+    // Alert durumu - son bilinen pozisyona git ve ara
+    handleAlert(deltaTime, walls) {
+        // Hedef varsa combat'a geç
         if (this.target) {
             this.state = BotState.COMBAT;
             this.stateTimer = 0;
             return;
         }
         
+        // Son bilinen hedef pozisyonuna git
+        if (this.lastKnownTargetPos) {
+            const dist = this.position.distanceTo(this.lastKnownTargetPos);
+            if (dist > 2) {
+                const dir = new THREE.Vector3().subVectors(this.lastKnownTargetPos, this.position).normalize();
+                this.rotation = Math.atan2(dir.x, dir.z);
+                const speed = CONFIG.BOT_SPEED * 0.7;
+                const newX = this.position.x + dir.x * speed * deltaTime;
+                const newZ = this.position.z + dir.z * speed * deltaTime;
+                
+                if (!this.checkWallCollision(newX, newZ, walls)) {
+                    this.position.x = newX;
+                    this.position.z = newZ;
+                }
+            } else {
+                // Pozisyona ulaştı, etrafa bakın
+                this.rotation += (Math.random() - 0.5) * 0.3;
+            }
+        }
+        
+        // Uzun süre hedef bulunamazsa patrol'a dön
         if (this.stateTimer > 5) {
             this.state = BotState.PATROL;
             this.stateTimer = 0;
+            this.lastKnownTargetPos = null;
         }
     }
     
@@ -371,47 +447,70 @@ class Bot {
             this.target = null;
             this.state = BotState.ALERT;
             this.stateTimer = 0;
+            this.lastKnownTargetPos = null;
             return;
         }
         
         const targetPos = this.target.position;
         const dist = this.position.distanceTo(targetPos);
         
+        // Hedefin son bilinen pozisyonunu kaydet
+        this.lastKnownTargetPos = targetPos.clone();
+        
+        // Görüş hattı var mı kontrol et
+        const hasLOS = this.hasLineOfSight(targetPos, walls);
+        
+        if (!hasLOS) {
+            // Görüş hattı yoksa son bilinen pozisyona git
+            if (this.lastKnownTargetPos) {
+                const dir = new THREE.Vector3().subVectors(this.lastKnownTargetPos, this.position).normalize();
+                this.rotation = Math.atan2(dir.x, dir.z);
+                const speed = CONFIG.BOT_SPEED * 0.8;
+                this.position.x += dir.x * speed * deltaTime;
+                this.position.z += dir.z * speed * deltaTime;
+            }
+            return;
+        }
+        
         // AI davranışı - saldırı, cover, veya flanking
         this.updateAIBehavior(deltaTime, targetPos, dist, walls);
         
-        // Ates et
-        this.tryShoot(dist);
+        // Ateş et
+        return this.tryShoot(dist);
     }
     
-    // AI davranış güncellemesi
+    // AI davranış güncellemesi - daha insan gibi hareket
     updateAIBehavior(deltaTime, targetPos, dist, walls) {
-        // Cover noktası kontrolü veya flanking
-        if (!this.coverPoint || this.stateTimer > 3) {
-            this.findCoverPoint(targetPos, walls);
+        // Her 2-4 saniyede yeni strateji belirle
+        if (!this.strategyTimer) this.strategyTimer = 0;
+        this.strategyTimer += deltaTime;
+        
+        if (this.strategyTimer > 2 + Math.random() * 2) {
+            this.strategyTimer = 0;
+            // Rastgele strateji seç: agresif, defansif, flanking
+            const rand = Math.random();
+            if (rand < 0.4) {
+                this.currentStrategy = 'aggressive';
+            } else if (rand < 0.7) {
+                this.currentStrategy = 'strafe';
+            } else {
+                this.currentStrategy = 'cover';
+            }
         }
         
-        // Cover noktasına git veya flanking yap
-        if (this.coverPoint) {
-            const coverDist = this.position.distanceTo(this.coverPoint);
-            if (coverDist > 1) {
-                // Cover'a hareket et
-                const dir = new THREE.Vector3().subVectors(this.coverPoint, this.position).normalize();
-                this.rotation = Math.atan2(dir.x, dir.z);
-                const speed = CONFIG.BOT_SPEED * 0.7;
-                this.position.x += dir.x * speed * deltaTime;
-                this.position.z += dir.z * speed * deltaTime;
-            } else {
-                // Cover'da bekle ve ara sıra peek yap
-                if (Math.random() < 0.02) {
-                    // Rastgele yönlere bak
-                    const angle = Math.random() * Math.PI * 2;
-                    this.rotation = Math.atan2(Math.sin(angle), Math.cos(angle));
-                }
-            }
-        } else {
-            // Flanking - hedefin yanlarına hareket et
-            this.handleFlanking(deltaTime, targetPos, dist);
+        // Stratejiye göre hareket
+        switch (this.currentStrategy) {
+            case 'aggressive':
+                this.handleAggressive(deltaTime, targetPos, dist, walls);
+                break;
+            case 'strafe':
+                this.handleStrafe(deltaTime, targetPos, dist, walls);
+                break;
+            case 'cover':
+                this.handleCover(deltaTime, targetPos, dist, walls);
+                break;
+            default:
+                this.handleStrafe(deltaTime, targetPos, dist, walls);
         }
         
         // Hedefe dönük kal
@@ -419,27 +518,88 @@ class Bot {
         this.rotation = Math.atan2(lookDir.x, lookDir.z);
     }
     
-    // Flanking davranışı
-    handleFlanking(deltaTime, targetPos, dist) {
-        // Hedefin yanına dairesel hareket
+    // Agresif strateji - hedefe doğru ilerle
+    handleAggressive(deltaTime, targetPos, dist, walls) {
+        if (dist > 5) {
+            // Hedefe yaklaş
+            const dir = new THREE.Vector3().subVectors(targetPos, this.position).normalize();
+            const speed = CONFIG.BOT_SPEED * 1.2;
+            const newX = this.position.x + dir.x * speed * deltaTime;
+            const newZ = this.position.z + dir.z * speed * deltaTime;
+            
+            if (!this.checkWallCollision(newX, newZ, walls)) {
+                this.position.x = newX;
+                this.position.z = newZ;
+            }
+        } else if (dist < 3) {
+            // Çok yakınsa geri çekil
+            const dir = new THREE.Vector3().subVectors(this.position, targetPos).normalize();
+            const speed = CONFIG.BOT_SPEED * 0.8;
+            this.position.x += dir.x * speed * deltaTime;
+            this.position.z += dir.z * speed * deltaTime;
+        }
+    }
+    
+    // Strafe stratejisi - yana yana hareket
+    handleStrafe(deltaTime, targetPos, dist, walls) {
+        // Hedef etrafında dairesel hareket
         const angle = Math.atan2(targetPos.z - this.position.z, targetPos.x - this.position.x);
-        const flankingAngle = angle + (Math.random() > 0.5 ? Math.PI / 3 : -Math.PI / 3);
         
-        let moveDir;
-        if (dist > 10) {
-            // Yaklaş
-            moveDir = new THREE.Vector3().subVectors(targetPos, this.position).normalize();
-        } else if (dist < 5) {
-            // Uzaklaş
-            moveDir = new THREE.Vector3().subVectors(targetPos, this.position).normalize().negate();
-        } else {
-            // Flanking hareketi
-            moveDir = new THREE.Vector3(Math.cos(flankingAngle), 0, Math.sin(flankingAngle));
+        // Sağa veya sola strafe
+        if (!this.strafeDirection) this.strafeDirection = Math.random() > 0.5 ? 1 : -1;
+        if (Math.random() < 0.02) this.strafeDirection *= -1; // Ara sıra yön değiştir
+        
+        const strafeAngle = angle + (Math.PI / 2) * this.strafeDirection;
+        const strafeDir = new THREE.Vector3(Math.cos(strafeAngle), 0, Math.sin(strafeAngle));
+        
+        const speed = CONFIG.BOT_SPEED * 0.9;
+        const newX = this.position.x + strafeDir.x * speed * deltaTime;
+        const newZ = this.position.z + strafeDir.z * speed * deltaTime;
+        
+        if (!this.checkWallCollision(newX, newZ, walls)) {
+            this.position.x = newX;
+            this.position.z = newZ;
         }
         
-        const speed = CONFIG.BOT_SPEED * 0.8;
-        this.position.x += moveDir.x * speed * deltaTime;
-        this.position.z += moveDir.z * speed * deltaTime;
+        // İdeal mesafeyi koru
+        if (dist > 15) {
+            // Yaklaş
+            const approachDir = new THREE.Vector3().subVectors(targetPos, this.position).normalize();
+            this.position.x += approachDir.x * speed * 0.3 * deltaTime;
+            this.position.z += approachDir.z * speed * 0.3 * deltaTime;
+        } else if (dist < 5) {
+            // Uzaklaş
+            const retreatDir = new THREE.Vector3().subVectors(this.position, targetPos).normalize();
+            this.position.x += retreatDir.x * speed * 0.5 * deltaTime;
+            this.position.z += retreatDir.z * speed * 0.5 * deltaTime;
+        }
+    }
+    
+    // Cover stratejisi - koruma arkasına git
+    handleCover(deltaTime, targetPos, dist, walls) {
+        // Cover noktası bul
+        if (!this.coverPoint || this.position.distanceTo(this.coverPoint) < 1) {
+            this.findCoverPoint(targetPos, walls);
+        }
+        
+        if (this.coverPoint) {
+            const coverDist = this.position.distanceTo(this.coverPoint);
+            if (coverDist > 1) {
+                // Cover'a git
+                const dir = new THREE.Vector3().subVectors(this.coverPoint, this.position).normalize();
+                const speed = CONFIG.BOT_SPEED * 0.8;
+                const newX = this.position.x + dir.x * speed * deltaTime;
+                const newZ = this.position.z + dir.z * speed * deltaTime;
+                
+                if (!this.checkWallCollision(newX, newZ, walls)) {
+                    this.position.x = newX;
+                    this.position.z = newZ;
+                }
+            }
+        } else {
+            // Cover yoksa strafe yap
+            this.handleStrafe(deltaTime, targetPos, dist, walls);
+        }
     }
     
     // Cover noktası bul
@@ -481,30 +641,61 @@ class Bot {
         return new THREE.Vector3(x, 0, z);
     }
     
-    // Flee durumu
+    // Flee durumu - hedeften kaç ve can yenile
     handleFlee(deltaTime, walls) {
-        // En uzak noktaya kac
-        const fleeDir = new THREE.Vector3(
-            Math.random() - 0.5,
-            0,
-            Math.random() - 0.5
-        ).normalize();
+        // Hedeften uzaklaş
+        let fleeDir;
+        if (this.target && this.target.isAlive) {
+            // Hedeften ters yönde kaç
+            fleeDir = new THREE.Vector3().subVectors(this.position, this.target.position).normalize();
+        } else {
+            // Rastgele yön
+            fleeDir = new THREE.Vector3(
+                Math.random() - 0.5,
+                0,
+                Math.random() - 0.5
+            ).normalize();
+        }
+        
+        // Kaçış yönüne rastgele sapma ekle (daha doğal hareket)
+        const deviation = (Math.random() - 0.5) * 0.5;
+        fleeDir.x += deviation;
+        fleeDir.z += deviation;
+        fleeDir.normalize();
         
         this.rotation = Math.atan2(fleeDir.x, fleeDir.z);
         
+        // Hızlı kaç
         const speed = CONFIG.BOT_RUN_SPEED;
-        this.position.x += fleeDir.x * speed;
-        this.position.z += fleeDir.z * speed;
+        const newX = this.position.x + fleeDir.x * speed * deltaTime;
+        const newZ = this.position.z + fleeDir.z * speed * deltaTime;
         
-        // Sinirlar icinde kal
+        // Duvar kontrolü
+        if (!this.checkWallCollision(newX, newZ, walls)) {
+            this.position.x = newX;
+            this.position.z = newZ;
+        } else {
+            // Duvar varsa yan yönde kaç
+            const sideDir = new THREE.Vector3(-fleeDir.z, 0, fleeDir.x);
+            this.position.x += sideDir.x * speed * deltaTime;
+            this.position.z += sideDir.z * speed * deltaTime;
+        }
+        
+        // Sınırlar içinde kal
         const halfSize = CONFIG.MAP_SIZE / 2 - 1;
         this.position.x = Math.max(-halfSize, Math.min(halfSize, this.position.x));
         this.position.z = Math.max(-halfSize, Math.min(halfSize, this.position.z));
         
-        // Can yenilendiyse patrol'a don
-        if (this.health > this.maxHealth * 0.5 || this.stateTimer > 10) {
+        // Can yenile (kaçarken yavaşça iyileş)
+        if (this.health < this.maxHealth) {
+            this.health += deltaTime * 5; // Saniyede 5 can
+        }
+        
+        // Can yenilendiyse veya süre dolduysa patrol'a dön
+        if (this.health > this.maxHealth * 0.6 || this.stateTimer > 8) {
             this.state = BotState.PATROL;
             this.stateTimer = 0;
+            this.target = null;
         }
     }
     
@@ -513,26 +704,33 @@ class Bot {
         const now = Date.now();
         if (now - this.lastShot < this.fireRate) return null;
         
-        // Mesafe cezas
+        this.lastShot = now;
+        
+        // Muzzle flash göster
+        this.showMuzzleFlash();
+        
+        // Mesafe cezası
         const accuracyPenalty = Math.max(0, (distance - 10) * 0.02);
         const finalAccuracy = this.accuracy - accuracyPenalty;
         
+        // Her zaman ateş ettiğini belirt
+        const result = {
+            shot: true,
+            hit: false,
+            damage: 0,
+            target: this.target,
+            targetType: this.targetType
+        };
+        
         if (Math.random() < finalAccuracy) {
-            this.lastShot = now;
-            
-            // Hasar hesapla
-            const damage = 15 + Math.floor(Math.random() * 10);
-            
-            return {
-                hit: true,
-                damage: damage,
-                target: this.target,
-                targetType: this.targetType
-            };
+            // Hasar hesapla - mesafeye göre azalan hasar
+            const baseDamage = 15 + Math.floor(Math.random() * 10);
+            const distancePenalty = Math.max(0.5, 1 - (distance / this.attackRange) * 0.3);
+            result.damage = Math.floor(baseDamage * distancePenalty);
+            result.hit = true;
         }
         
-        this.lastShot = now;
-        return { hit: false };
+        return result;
     }
     
     // Hareket guncelleme
@@ -661,11 +859,24 @@ class BotManager {
         return this.bots;
     }
     
-    // Tum botlari spawn et
+    // Tum botlari spawn et - rastgele ve farklı noktalar
     spawnAll(spawnPoints) {
+        // Spawn noktalarını karıştır
+        const shuffledPoints = [...spawnPoints].sort(() => Math.random() - 0.5);
+        
         this.bots.forEach((bot, i) => {
-            const point = spawnPoints[i % spawnPoints.length];
-            bot.spawn(point);
+            // Her bot için farklı bir spawn noktası seç
+            const pointIndex = i % shuffledPoints.length;
+            const basePoint = shuffledPoints[pointIndex];
+            
+            // Spawn noktasına rastgele offset ekle (birbirine yakın spawn olmamaları için)
+            const offsetRange = 3;
+            const spawnPoint = {
+                x: basePoint.x + (Math.random() - 0.5) * offsetRange,
+                z: basePoint.z + (Math.random() - 0.5) * offsetRange
+            };
+            
+            bot.spawn(spawnPoint);
         });
     }
     
@@ -683,11 +894,46 @@ class BotManager {
         return respawnRequests;
     }
     
-    // Botlari respawn et
+    // Botlari respawn et - rastgele noktada ve diğer botlardan uzakta
     respawnBots(botsToRespawn, spawnPoints) {
         botsToRespawn.forEach(bot => {
-            const point = spawnPoints[Math.floor(Math.random() * spawnPoints.length)];
-            bot.spawn(point);
+            // Yaşayan botların pozisyonlarını al
+            const aliveBotPositions = this.bots
+                .filter(b => b.isAlive && b !== bot)
+                .map(b => b.position);
+            
+            // En uygun spawn noktasını bul (diğer botlardan en uzak)
+            let bestPoint = spawnPoints[Math.floor(Math.random() * spawnPoints.length)];
+            let maxMinDist = 0;
+            
+            // 3 deneme yap, en iyi noktayı seç
+            for (let i = 0; i < 3; i++) {
+                const testPoint = spawnPoints[Math.floor(Math.random() * spawnPoints.length)];
+                
+                // Bu noktanın diğer botlara olan minimum mesafesi
+                let minDist = Infinity;
+                aliveBotPositions.forEach(pos => {
+                    const dist = Math.sqrt(
+                        Math.pow(testPoint.x - pos.x, 2) + 
+                        Math.pow(testPoint.z - pos.z, 2)
+                    );
+                    minDist = Math.min(minDist, dist);
+                });
+                
+                // Daha uzak bir nokta bulduysak güncelle
+                if (minDist > maxMinDist) {
+                    maxMinDist = minDist;
+                    bestPoint = testPoint;
+                }
+            }
+            
+            // Spawn noktasına rastgele offset ekle
+            const spawnPoint = {
+                x: bestPoint.x + (Math.random() - 0.5) * 2,
+                z: bestPoint.z + (Math.random() - 0.5) * 2
+            };
+            
+            bot.spawn(spawnPoint);
         });
     }
     

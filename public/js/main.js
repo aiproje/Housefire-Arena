@@ -425,13 +425,19 @@ class Game {
             if (!bot.isAlive) return;
             if (!bot.target) return;
             
-            let result;
+            // Combat durumunda ateş et
+            if (bot.state !== BotState.COMBAT) return;
             
-            if (bot.targetType === 'player') {
-                // Oyuncuya ateş et
-                result = bot.tryShoot(bot.position.distanceTo(this.player.position));
-                
-                if (result && result.hit) {
+            const dist = bot.position.distanceTo(bot.target.position);
+            const result = bot.tryShoot(dist);
+            
+            if (!result || !result.shot) return;
+            
+            // Ateş sesi
+            audioManager.play('pistol');
+            
+            if (result.hit) {
+                if (bot.targetType === 'player') {
                     // Oyuncuya hasar
                     const damageResult = this.player.takeDamage(result.damage);
                     
@@ -439,21 +445,15 @@ class Game {
                     this.effects.showDamageFlash();
                     this.effects.createBloodSplatter(this.player.position);
                     
-                    // Olum
+                    // Ölüm
                     if (damageResult.isDead) {
                         bot.kills++;
                         this.player.deaths++;
                     }
-                }
-            } else if (bot.targetType === 'bot') {
-                // Diger botlara ateş et - simdi botlar birbirleriyle savaşabilir!
-                const targetBot = bot.target;
-                if (targetBot && targetBot.isAlive) {
-                    const dist = bot.position.distanceTo(targetBot.position);
-                    result = bot.tryShoot(dist);
-                    
-                    if (result && result.hit) {
-                        // Bot hasarı
+                } else if (bot.targetType === 'bot') {
+                    // Diğer bota hasar
+                    const targetBot = bot.target;
+                    if (targetBot && targetBot.isAlive) {
                         const damageResult = targetBot.takeDamage(result.damage);
                         this.effects.createBloodSplatter(targetBot.position);
                         
@@ -464,29 +464,6 @@ class Game {
                         }
                     }
                 }
-            }
-            
-            // Bot atış sesi - silah türüne göre
-            if (result && result.shot) {
-                const weaponType = bot.weaponType || 'pistol';
-                let soundName;
-                switch (weaponType) {
-                    case 'pistol':
-                        soundName = 'pistol';
-                        break;
-                    case 'shotgun':
-                        soundName = 'shotgun';
-                        break;
-                    case 'rifle':
-                        soundName = 'rifle';
-                        break;
-                    case 'sniper':
-                        soundName = 'sniper';
-                        break;
-                    default:
-                        soundName = 'pistol';
-                }
-                audioManager.play(soundName);
             }
         });
     }
