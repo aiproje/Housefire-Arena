@@ -3,8 +3,8 @@
 
 const CONFIG = {
     // Oyuncu ayarlari
-    PLAYER_SPEED: 0.15,
-    PLAYER_RUN_SPEED: 0.25,
+    PLAYER_SPEED: 8.0,
+    PLAYER_RUN_SPEED: 12.0,
     PLAYER_HEIGHT: 1.8,
     PLAYER_RADIUS: 0.4,
     
@@ -15,8 +15,8 @@ const CONFIG = {
     
     // Bot ayarlari
     BOT_COUNT: 8,
-    BOT_SPEED: 0.1,
-    BOT_RUN_SPEED: 0.15,
+    BOT_SPEED: 8.0,
+    BOT_RUN_SPEED: 12.0,
     BOT_HEIGHT: 1.8,
     BOT_RADIUS: 0.4,
     BOT_RESPAWN_TIME: 3000, // ms

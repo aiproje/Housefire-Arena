@@ -141,8 +141,8 @@ class Player {
         const move = input.getMovementVector();
         
         // Yeni pozisyon hesapla
-        const newX = this.position.x + move.x * speed;
-        const newZ = this.position.z + move.z * speed;
+        const newX = this.position.x + move.x * speed * deltaTime;
+        const newZ = this.position.z + move.z * speed * deltaTime;
         
         // Carpisma kontrolu
         if (this.canMove(newX, this.position.z, walls)) {

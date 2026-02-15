@@ -134,6 +134,7 @@ class Game {
         
         // Klavye
         inputManager.on('keydown', (e) => this.handleKeyDown(e));
+        inputManager.on('keyup', (e) => this.handleKeyUp(e));
         
         // Fare
         inputManager.on('mousedown', (e) => this.handleMouseDown(e));
@@ -324,8 +325,8 @@ class Game {
             }
         }
         
-        // Magaza (B)
-        if (e.key.toLowerCase() === 'b') {
+        // Magaza (B veya M)
+        if (e.key.toLowerCase() === 'b' || e.key.toLowerCase() === 'm') {
             this.toggleShop();
         }
         
@@ -339,6 +340,17 @@ class Game {
         // Bomba (G)
         if (e.key.toLowerCase() === 'g') {
             this.throwGrenade();
+        }
+    }
+    
+    // Tus birakildiginda
+    handleKeyUp(e) {
+        if (!this.state.isPlaying) return;
+        
+        // Skor tablosu (Tab) - tus birakilinca kapat
+        if (e.key === 'Tab') {
+            e.preventDefault();
+            uiManager.toggleScoreboard(false);
         }
     }
     
