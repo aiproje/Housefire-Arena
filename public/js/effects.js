@@ -188,12 +188,13 @@ class EffectsManager {
         const direction = new THREE.Vector3().subVectors(end, start);
         const length = direction.length();
         
+        // Daha belirgin mermi izi - daha kalın ve daha uzun
         const trail = new THREE.Mesh(
-            new THREE.CylinderGeometry(0.02, 0.02, length, 4),
+            new THREE.CylinderGeometry(0.05, 0.05, length * 2.5, 6),
             new THREE.MeshBasicMaterial({
                 color: color,
                 transparent: true,
-                opacity: 0.8
+                opacity: 1.0
             })
         );
         
@@ -206,8 +207,8 @@ class EffectsManager {
         
         this.trails.push({
             mesh: trail,
-            life: 40,
-            maxLife: 40
+            life: 60,
+            maxLife: 60
         });
     }
     

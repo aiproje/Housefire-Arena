@@ -251,16 +251,20 @@ const SPAWN_POINTS = [
     { x: 5, z: 5 }
 ];
 
-// Bot renkleri - daha fazla çeşitlilik
+// Bot renkleri - her bot farklı renkte
 const BOT_COLORS = [
-    0xff0000,
-    0xff4444,
-    0xcc0000,
-    0xaa0000,
-    0x990000,
-    0x880000,
-    0xff6600,
-    0xff3300
+    0xff0000, // Kırmızı
+    0x00ff00, // Yeşil
+    0x0000ff, // Mavi
+    0xffff00, // Sarı
+    0xff00ff, // Mor
+    0x00ffff, // Cyan
+    0xff8800, // Turuncu
+    0xff0088, // Pembe
+    0x8800ff, // Eflatun
+    0x00ff88, // Açık yeşil
+    0x0088ff, // Açık mavi
+    0xffcc00  // Altın sarısı
 ];
 
 // Export (ES6 modul sistemi)

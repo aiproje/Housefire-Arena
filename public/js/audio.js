@@ -43,6 +43,9 @@ class AudioManager {
             this.soundLoadPromise = this.loadSounds().then(() => {
                 this.soundsLoaded = true;
                 console.log('Ses dosyalari yuklendi');
+            }).catch((err) => {
+                console.error('Ses dosyalari yuklenirken hata:', err);
+                this.soundsLoaded = true; // Hata olsa bile devam et
             });
             
             // Sesleri olustur
@@ -58,6 +61,12 @@ class AudioManager {
     async loadSounds() {
         this.soundBuffers = {};
         
+        // Context'i resume et (browser politikasi)
+        if (this.context.state === 'suspended') {
+            await this.context.resume();
+            console.log('[Audio] Context resume edildi');
+        }
+        
         const soundFiles = {
             single: 'gun_voices/single.mp3',
             double_tap: 'gun_voices/double_tap.mp3',
@@ -65,16 +74,30 @@ class AudioManager {
             spray: 'gun_voices/spray.mp3'
         };
         
+        let loadedCount = 0;
+        let failedCount = 0;
+        
         try {
             for (const [name, path] of Object.entries(soundFiles)) {
-                const response = await fetch(path);
-                if (response.ok) {
-                    const arrayBuffer = await response.arrayBuffer();
-                    this.soundBuffers[name] = await this.context.decodeAudioData(arrayBuffer);
+                try {
+                    const response = await fetch(path);
+                    if (response.ok) {
+                        const arrayBuffer = await response.arrayBuffer();
+                        this.soundBuffers[name] = await this.context.decodeAudioData(arrayBuffer);
+                        console.log(`[Audio] Ses dosyasi yuklendi: ${name} (${path})`);
+                        loadedCount++;
+                    } else {
+                        console.warn(`[Audio] Ses dosyasi bulunamadi: ${path} (HTTP ${response.status})`);
+                        failedCount++;
+                    }
+                } catch (err) {
+                    console.error(`[Audio] Ses dosyasi cozumleme hatasi: ${name}`, err);
+                    failedCount++;
                 }
             }
+            console.log(`[Audio] Yukleme tamamlandi: ${loadedCount} basarili, ${failedCount} basarisiz`);
         } catch (e) {
-            console.warn('Ses dosyalari yuklenemedi:', e);
+            console.error('[Audio] Ses dosyalari yuklenirken hata:', e);
         }
     }
     
@@ -93,42 +116,72 @@ class AudioManager {
         source.start();
     }
     
+    // Silah sesi cal (async)
+    async playGunSound(name) {
+        // Sesi cal
+        if (this.soundBuffers[name]) {
+            await this.playBuffer(name);
+        } else {
+            this.createGunSound(800, 0.1, 'square');
+        }
+    }
+    
+    // Silah sesi cal - async versiyon
+    async playGunSoundBuffered(name) {
+        if (!this.enabled || !this.context) return;
+        
+        // AudioContext'i resume et (browser politikasi) - beklemeden yap
+        if (this.context.state === 'suspended') {
+            this.context.resume();
+        }
+        
+        // Sesler yüklenmemişse bekle!
+        if (!this.soundsLoaded && this.soundLoadPromise) {
+            console.log(`[Audio] Sesler yukleniyor, bekleniyor: ${name}`);
+            await this.soundLoadPromise;
+            console.log(`[Audio] Sesler yuklendi, tekrar deneniyor: ${name}`);
+        }
+        
+        // Ses yüklenmemişse sentetik ses kullan
+        if (!this.soundBuffers[name]) {
+            console.log(`[Audio] Buffer yok, sentetik ses kullaniliyor: ${name}`);
+            this.createGunSound(800, 0.1, 'square');
+            return;
+        }
+        
+        // Ses dosyasini cal
+        console.log(`[Audio] Ses caliniyor: ${name}, buffer var: ${!!this.soundBuffers[name]}`);
+        const source = this.context.createBufferSource();
+        source.buffer = this.soundBuffers[name];
+        source.connect(this.sfxGain);
+        source.start();
+    }
+    
     // Sesleri olustur (prosedurel)
     createSounds() {
         // Tabanca - gercek ses
-        this.sounds.pistol = () => {
-            if (this.soundBuffers.single) {
-                this.playBuffer('single');
-            } else {
-                this.createGunSound(800, 0.1, 'square');
-            }
+        this.sounds.pistol = async () => {
+            await this.playGunSoundBuffered('single');
         };
         
         // Pompali - gercek ses
-        this.sounds.shotgun = () => {
-            if (this.soundBuffers.double_tap) {
-                this.playBuffer('double_tap');
-            } else {
-                this.createGunSound(300, 0.2, 'sawtooth');
-            }
+        this.sounds.shotgun = async () => {
+            await this.playGunSoundBuffered('double_tap');
         };
         
         // Keskin nisanci - gercek ses
-        this.sounds.sniper = () => {
-            if (this.soundBuffers.single) {
-                this.playBuffer('single');
-            } else {
-                this.createGunSound(1200, 0.15, 'sine');
-            }
+        this.sounds.sniper = async () => {
+            await this.playGunSoundBuffered('single');
         };
         
         // Tufek - gercek ses
-        this.sounds.rifle = () => {
-            if (this.soundBuffers.burst) {
-                this.playBuffer('burst');
-            } else {
-                this.createGunSound(600, 0.08, 'square');
-            }
+        this.sounds.rifle = async () => {
+            await this.playGunSoundBuffered('burst');
+        };
+        
+        // Spray - gercek ses
+        this.sounds.spray = async () => {
+            await this.playGunSoundBuffered('spray');
         };
         
         // Yakin dovus
@@ -402,6 +455,20 @@ class AudioManager {
         
         if (this.sounds[soundName]) {
             this.sounds[soundName]();
+        }
+    }
+    
+    // Ses cal (async versiyon)
+    async playAsync(soundName) {
+        if (!this.enabled) return;
+        
+        // AudioContext'i resume et (browser politikasi)
+        if (this.context && this.context.state === 'suspended') {
+            this.context.resume();
+        }
+        
+        if (this.sounds[soundName]) {
+            await this.sounds[soundName]();
         }
     }
     

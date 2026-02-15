@@ -177,14 +177,28 @@ class Player {
     
     // Hareket edebilir mi?
     canMove(x, z, walls) {
-        const halfSize = CONFIG.MAP_SIZE / 2 - 1;
-        if (x < -halfSize || x > halfSize || z < -halfSize || z > halfSize) {
+        const halfSize = CONFIG.MAP_SIZE / 2;
+        const radius = CONFIG.PLAYER_RADIUS;
+        
+        // Player radius dahil edilerek sinir kontrolu
+        if (x < -halfSize + radius || x > halfSize - radius || 
+            z < -halfSize + radius || z > halfSize - radius) {
+            console.log('[Collision] Boundary hit:', { x, z, halfSize, radius });
             return false;
         }
         
+        // Player radius dahil edilerek duvar kontrolu
         for (const wall of walls) {
             const box = new THREE.Box3().setFromObject(wall);
-            if (box.containsPoint(new THREE.Vector3(x, CONFIG.PLAYER_HEIGHT / 2, z))) {
+            
+            // Playeri bir nokta yerine kure olarak kontrol et
+            const playerSphere = new THREE.Sphere(
+                new THREE.Vector3(x, CONFIG.PLAYER_HEIGHT / 2, z),
+                radius
+            );
+            
+            if (box.intersectsSphere(playerSphere)) {
+                console.log('[Collision] Wall hit:', { x, z, wallPos: wall.position.toArray() });
                 return false;
             }
         }

@@ -16,7 +16,7 @@ class WeaponSystem {
             direction: direction.clone(),
             weapon: weapon,
             life: Math.ceil(weapon.range / 2),
-            speed: 2,
+            speed: 3, // Mermi hızı artırıldı
             damage: weapon.damage,
             color: weapon.color
         };
@@ -31,6 +31,12 @@ class WeaponSystem {
         bullet.mesh = new THREE.Mesh(bulletGeo, bulletMat);
         bullet.mesh.position.copy(bullet.position3D);
         this.scene.add(bullet.mesh);
+        
+        // Mermi izi efekti
+        if (effects) {
+            const endPos = bullet.position3D.clone().add(bullet.direction.clone().multiplyScalar(2));
+            effects.createBulletTrail(bullet.position3D, endPos, weapon.color);
+        }
         
         // Muzzle flash
         this.createMuzzleFlash(position, direction, weapon);
@@ -65,6 +71,12 @@ class WeaponSystem {
                 pellet.mesh = new THREE.Mesh(pelletGeo, pelletMat);
                 pellet.mesh.position.copy(pellet.position3D);
                 this.scene.add(pellet.mesh);
+                
+                // Pellet mermi izi efekti
+                if (effects) {
+                    const endPos = pellet.position3D.clone().add(pellet.direction.clone().multiplyScalar(2));
+                    effects.createBulletTrail(pellet.position3D, endPos, weapon.color);
+                }
                 
                 this.bullets.push(pellet);
             }
@@ -119,6 +131,9 @@ class WeaponSystem {
         const hits = [];
         
         this.bullets = this.bullets.filter(bullet => {
+            // Onceki pozisyon
+            const prevPosition = bullet.position3D.clone();
+            
             // Hareket
             bullet.position3D.add(bullet.direction.clone().multiplyScalar(bullet.speed));
             bullet.life--;
@@ -128,17 +143,19 @@ class WeaponSystem {
                 bullet.mesh.position.copy(bullet.position3D);
             }
             
-            // Duvar carptimi?
+            // Duvar carptimi? - Raycast ile daha iyi kontrol
             let hitWall = false;
-            for (const wall of walls) {
-                const box = new THREE.Box3().setFromObject(wall);
-                if (box.containsPoint(bullet.position3D)) {
+            if (walls && walls.length > 0) {
+                const raycaster = new THREE.Raycaster(prevPosition, bullet.direction, 0, bullet.speed);
+                const intersects = raycaster.intersectObjects(walls);
+                if (intersects.length > 0) {
                     hitWall = true;
+                    // Carisma noktasini guncelle
+                    bullet.position3D.copy(intersects[0].point);
                     // Duvar carpmasi efekti
                     if (effects) {
                         effects.createSparks(bullet.position3D, bullet.direction);
                     }
-                    break;
                 }
             }
             

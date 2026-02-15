@@ -37,8 +37,8 @@ const server = http.createServer((req, res) => {
     }
     
     // Dosya yolunu belirle
-    // locales klasoru icin ozel durum
-    if (filePath.startsWith('/locales/')) {
+    // locales ve gun_voices klasorleri icin ozel durum
+    if (filePath.startsWith('/locales/') || filePath.startsWith('/gun_voices/')) {
         filePath = '.' + filePath;
     } else {
         filePath = './public' + filePath;

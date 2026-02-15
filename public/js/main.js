@@ -445,6 +445,28 @@ class Game {
             
             if (!result || !result.shot) return;
             
+            // Bot mermisi oluştur (görünür mermi ve iz efekti için)
+            const direction = new THREE.Vector3().subVectors(bot.target.position, bot.position).normalize();
+            // Hafif sapma ekle
+            direction.x += (Math.random() - 0.5) * 0.1;
+            direction.z += (Math.random() - 0.5) * 0.1;
+            direction.normalize();
+            
+            // Mermi oluştur - düşman mermisi olarak işaretle
+            const bulletPosition = bot.position.clone();
+            bulletPosition.y = 1.5; // Bot göz hizası
+            const botBullet = this.weaponSystem.createBullet(
+                bulletPosition,
+                direction,
+                WEAPONS.pistol,
+                this.effects
+            );
+            if (botBullet) {
+                botBullet.isEnemy = true;
+                // Mermi hasarı sistem tarafından uygulanacak, doğrudan hasar uygulanmasın
+                result.hit = false; // Çift hasarı önlemek için
+            }
+            
             // Ateş sesi
             audioManager.play('pistol');
             
@@ -584,12 +606,15 @@ class Game {
                 // Duvar yoksa görünür
                 if (intersects.length === 0) {
                     bot.mesh.visible = true;
+                    bot.healthBar.visible = true;
                 } else {
                     bot.mesh.visible = false;
+                    bot.healthBar.visible = false;
                 }
             } else {
                 // Fener menzilinde değilse görünmez
                 bot.mesh.visible = false;
+                bot.healthBar.visible = false;
             }
         });
     }
