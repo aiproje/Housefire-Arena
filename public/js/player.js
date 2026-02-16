@@ -67,25 +67,29 @@ class Player {
         torso.castShadow = true;
         this.mesh.add(torso);
         
-        // Sol kol - silah tutan kol yukarıda
+        // Sol kol - silah tutan kol - ASAGIYA BAKMALI
         const leftArm = new THREE.Mesh(
             new THREE.BoxGeometry(0.2, 0.7, 0.2),
             new THREE.MeshStandardMaterial({ color: 0x00ff88, roughness: 0.7 })
         );
-        leftArm.position.set(-0.5, 1.1, 0);  // Omuz seviyesi
+        leftArm.position.set(-0.5, 0.75, 0);  // Omuz seviyesinden asagi
+        // leftArm.rotation.x = 0;  // Dikey (asagiya) pozisyon - varsayilan deger
         leftArm.castShadow = true;
         this.mesh.add(leftArm);
         this.leftArm = leftArm;
         
-        // Sag kol - destek kol
+        // Sag kol - destek kol - ILERIYE BAKMALI
         const rightArm = new THREE.Mesh(
             new THREE.BoxGeometry(0.2, 0.7, 0.2),
             new THREE.MeshStandardMaterial({ color: 0x00ff88, roughness: 0.7 })
         );
-        rightArm.position.set(0.5, 1.0, 0);  // Omuz seviyesi
+        rightArm.position.set(0.5, 1.1, 0);  // Omuz seviyesi
+        rightArm.rotation.x = Math.PI / 2;  // Yatay pozisyon (ileriye)
         rightArm.castShadow = true;
         this.mesh.add(rightArm);
         this.rightArm = rightArm;
+        
+        console.log('[DEBUG] Right arm initial rotation:', rightArm.rotation);
         
         // Sol bacak
         const leftLeg = new THREE.Mesh(
@@ -124,10 +128,23 @@ class Player {
     }
     
     createFlashlight() {
+        // Feneri saga kola bagla - boylece karakterle birlikte doner
         this.flashlight = new THREE.SpotLight(0xffffcc, 0, 15, Math.PI / 6, 0.5);
-        this.flashlight.position.set(0, 1.8, 0);
-        this.scene.add(this.flashlight);
-        this.scene.add(this.flashlight.target);
+        
+        // Feneri sag kolun ucuna yerlestir
+        if (this.rightArm) {
+            this.flashlight.position.set(0, 0.35, 0.2);  // Kolun ucunda, ileriye bakan tarafta
+            this.rightArm.add(this.flashlight);
+            this.rightArm.add(this.flashlight.target);
+            
+            // Fener hedefini karakterin onune yerlestir
+            this.flashlight.target.position.set(0, 0, 5);
+        } else {
+            // Yedek: saga baglanamazsa scene'e ekle
+            this.flashlight.position.set(0, 1.8, 0);
+            this.scene.add(this.flashlight);
+            this.scene.add(this.flashlight.target);
+        }
     }
     
     // Hareket guncelle
@@ -207,12 +224,12 @@ class Player {
     
     // Fener guncelle
     updateFlashlight() {
-        this.flashlight.position.set(this.position.x, 1.8, this.position.z);
-        this.flashlight.target.position.set(
-            this.position.x - Math.sin(this.rotation) * 5,
-            0,
-            this.position.z - Math.cos(this.rotation) * 5
-        );
+        // Fener artik kola bagli oldugu icin otomatik olarak karakterle birlikte doner
+        // Sadece hedef pozisyonunu guncel tut
+        if (this.flashlight && this.flashlight.target) {
+            // Hedefi karakterin onune yerlestir (local space'de)
+            this.flashlight.target.position.set(0, -0.2, 5);
+        }
     }
     
     // Fener ac/kapat
@@ -221,7 +238,7 @@ class Player {
     }
     
     // Ates et
-    shoot(bots, effects, audio) {
+    shoot(bots, walls, effects, audio) {
         if (!this.isAlive || this.isReloading) return null;
         
         const now = Date.now();
@@ -263,23 +280,41 @@ class Player {
             color: weapon.color
         };
         
-        // Hedef kontrolu
+        // Hedef kontrolu - ONCE duvar kontrolu yap!
         let hitResult = null;
-        bots.forEach((bot, i) => {
-            if (bot.isAlive && !hitResult) {
-                const dist = this.position.distanceTo(bot.position);
-                if (dist <= weapon.range) {
-                    const toBot = new THREE.Vector3().subVectors(bot.position, this.position).normalize();
-                    if (toBot.dot(dir) > 0.85) {
-                        hitResult = {
-                            bot: bot,
-                            index: i,
-                            distance: dist
-                        };
+        
+        // Oyuncu pozisyonundan silah mesafesini hesapla
+        const shootOrigin = this.position.clone();
+        shootOrigin.y = CONFIG.PLAYER_HEIGHT * 0.8; // Goz hizasi
+        
+        // Duvarlari kontrol et - eger duvar varsa hedefi vuramaz
+        let wallInWay = false;
+        if (walls && walls.length > 0) {
+            const raycaster = new THREE.Raycaster(shootOrigin, dir, 0, weapon.range);
+            const wallIntersects = raycaster.intersectObjects(walls);
+            if (wallIntersects.length > 0) {
+                wallInWay = true;
+            }
+        }
+        
+        // Sadece duvar yoksa hedefi kontrol et
+        if (!wallInWay) {
+            bots.forEach((bot, i) => {
+                if (bot.isAlive && !hitResult) {
+                    const dist = this.position.distanceTo(bot.position);
+                    if (dist <= weapon.range) {
+                        const toBot = new THREE.Vector3().subVectors(bot.position, this.position).normalize();
+                        if (toBot.dot(dir) > 0.85) {
+                            hitResult = {
+                                bot: bot,
+                                index: i,
+                                distance: dist
+                            };
+                        }
                     }
                 }
-            }
-        });
+            });
+        }
         
         return {
             bullet: bulletData,
@@ -454,9 +489,14 @@ class Player {
         if (this.mesh) {
             this.scene.remove(this.mesh);
         }
+        // Fener kola bagli oldugu icin parent'tan sil
         if (this.flashlight) {
-            this.scene.remove(this.flashlight);
-            this.scene.remove(this.flashlight.target);
+            if (this.flashlight.parent) {
+                this.flashlight.parent.remove(this.flashlight);
+            }
+            if (this.flashlight.target && this.flashlight.target.parent) {
+                this.flashlight.target.parent.remove(this.flashlight.target);
+            }
         }
     }
 }

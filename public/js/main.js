@@ -381,7 +381,7 @@ class Game {
     
     // Ates et
     shoot() {
-        const result = this.player.shoot(this.botManager.bots, this.effects, audioManager);
+        const result = this.player.shoot(this.botManager.bots, this.map.getWalls(), this.effects, audioManager);
         
         if (!result) return;
         

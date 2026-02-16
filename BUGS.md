@@ -13,4 +13,5 @@ buglar:
 [x] duvarlardan mermi geçiyor
 [x] ilk ateş etmede, ilk ölümde lag/donma/kasma oluyor sonrasında olmuyor.
 [x] dış duvarlarla temas ettiğinde bug oluyor ve duvara yapışıyorsun sadece duvar hizasında hareket edebiliyorsun.
-[] karakterlerin iki kolu da aşağıya bakıyor, sağ kolu karşıya bakmalı yani 90 derece açılı olmalı
+[x] karakterlerin iki kolu da da dikey duruyor ve sağ kolunun arkasında feneri tutuyor. sol kolu aşağıya bakmalı sağ kolu karşıya bakmalı ve karşıya bakan yani ateş ettiği tarafta fener veya silah olmalı elinde.
+[] odanın dışından odanın içindeki botları vurabiliyorum ve bu bir hata. duvarlar kurşun geçirmemeli!

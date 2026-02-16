@@ -84,22 +84,24 @@ class Bot {
         torso.castShadow = true;
         this.mesh.add(torso);
         
-        // Sol kol - silah tutan kol yukarıda
+        // Sol kol - silah tutan kol - ASAGIYA BAKMALI
         const leftArm = new THREE.Mesh(
             new THREE.BoxGeometry(0.2, 0.7, 0.2),
             new THREE.MeshStandardMaterial({ color: this.color, roughness: 0.7 })
         );
-        leftArm.position.set(-0.5, 1.1, 0);  // Omuz seviyesi
+        leftArm.position.set(-0.5, 0.75, 0);  // Omuz seviyesinden asagi
+        // leftArm.rotation.x = 0;  // Dikey (asagiya) pozisyon - varsayilan deger
         leftArm.castShadow = true;
         this.mesh.add(leftArm);
         this.leftArm = leftArm;
         
-        // Sag kol - destek kol
+        // Sag kol - destek kol - ILERIYE BAKMALI
         const rightArm = new THREE.Mesh(
             new THREE.BoxGeometry(0.2, 0.7, 0.2),
             new THREE.MeshStandardMaterial({ color: this.color, roughness: 0.7 })
         );
-        rightArm.position.set(0.5, 1.0, 0);  // Omuz seviyesi
+        rightArm.position.set(0.5, 1.1, 0);  // Omuz seviyesi
+        rightArm.rotation.x = Math.PI / 2;  // Yatay pozisyon (ileriye)
         rightArm.castShadow = true;
         this.mesh.add(rightArm);
         this.rightArm = rightArm;
@@ -176,10 +178,23 @@ class Bot {
     }
     
     createFlashlight() {
+        // Feneri saga kola bagla - boylece karakterle birlikte doner
         this.flashlight = new THREE.SpotLight(0xffffcc, 0, 15, Math.PI / 6, 0.5);
-        this.flashlight.position.set(0, 1.8, 0);
-        this.scene.add(this.flashlight);
-        this.scene.add(this.flashlight.target);
+        
+        // Feneri sag kolun ucuna yerlestir
+        if (this.rightArm) {
+            this.flashlight.position.set(0, 0.35, 0.2);  // Kolun ucunda, ileriye bakan tarafta
+            this.rightArm.add(this.flashlight);
+            this.rightArm.add(this.flashlight.target);
+            
+            // Fener hedefini karakterin onune yerlestir
+            this.flashlight.target.position.set(0, -0.2, 5);
+        } else {
+            // Yedek: saga baglanamazsa scene'e ekle
+            this.flashlight.position.set(0, 1.8, 0);
+            this.scene.add(this.flashlight);
+            this.scene.add(this.flashlight.target);
+        }
     }
     
     // Spawn noktasina yerles
@@ -762,12 +777,12 @@ class Bot {
     
     // Fener guncelleme
     updateFlashlight() {
-        this.flashlight.position.set(this.position.x, 1.8, this.position.z);
-        this.flashlight.target.position.set(
-            this.position.x - Math.sin(this.rotation) * 5,
-            0,
-            this.position.z - Math.cos(this.rotation) * 5
-        );
+        // Fener artik kola bagli oldugu icin otomatik olarak karakterle birlikte doner
+        // Sadece hedef pozisyonunu guncel tut
+        if (this.flashlight && this.flashlight.target) {
+            // Hedefi karakterin onune yerlestir (local space'de)
+            this.flashlight.target.position.set(0, -0.2, 5);
+        }
     }
     
     // Fener ac/kapat
@@ -836,9 +851,14 @@ class Bot {
         if (this.healthBar) {
             this.scene.remove(this.healthBar);
         }
+        // Fener kola bagli oldugu icin parent'tan sil
         if (this.flashlight) {
-            this.scene.remove(this.flashlight);
-            this.scene.remove(this.flashlight.target);
+            if (this.flashlight.parent) {
+                this.flashlight.parent.remove(this.flashlight);
+            }
+            if (this.flashlight.target && this.flashlight.target.parent) {
+                this.flashlight.target.parent.remove(this.flashlight.target);
+            }
         }
     }
 }
