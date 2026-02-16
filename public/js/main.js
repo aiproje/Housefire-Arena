@@ -155,6 +155,9 @@ class Game {
         uiManager.showScreen(null);
         uiManager.showHUD(true);
         
+        // Cursor gizle
+        this.hideCursor();
+        
         // Oyuncu olustur
         this.player = new Player(this.scene);
         this.player.respawn(SPAWN_POINTS);
@@ -191,6 +194,9 @@ class Game {
     endGame() {
         this.state.isPlaying = false;
         
+        // Cursor göster
+        this.showCursor();
+        
         // Kazanan belirle
         let winner = 'Player';
         let maxKills = this.player.kills;
@@ -203,6 +209,31 @@ class Game {
         });
         
         uiManager.showGameEnd(this.player, winner);
+    }
+    
+    // Cursor gizle
+    hideCursor() {
+        const gameContainer = document.getElementById('gameContainer');
+        if (gameContainer) {
+            gameContainer.style.cursor = 'none';
+            // Canvas'a da uygula (Three.js canvas'ı buraya ekliyor)
+            const canvas = gameContainer.querySelector('canvas');
+            if (canvas) {
+                canvas.style.cursor = 'none';
+            }
+        }
+    }
+    
+    // Cursor göster
+    showCursor() {
+        const gameContainer = document.getElementById('gameContainer');
+        if (gameContainer) {
+            gameContainer.style.cursor = 'default';
+            const canvas = gameContainer.querySelector('canvas');
+            if (canvas) {
+                canvas.style.cursor = 'default';
+            }
+        }
     }
     
     // Ana dongu
