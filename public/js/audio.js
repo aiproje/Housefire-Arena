@@ -135,22 +135,19 @@ class AudioManager {
             this.context.resume();
         }
         
-        // Sesler yüklenmemişse bekle!
-        if (!this.soundsLoaded && this.soundLoadPromise) {
-            console.log(`[Audio] Sesler yukleniyor, bekleniyor: ${name}`);
-            await this.soundLoadPromise;
-            console.log(`[Audio] Sesler yuklendi, tekrar deneniyor: ${name}`);
-        }
-        
-        // Ses yüklenmemişse sentetik ses kullan
-        if (!this.soundBuffers[name]) {
-            console.log(`[Audio] Buffer yok, sentetik ses kullaniliyor: ${name}`);
+        // Sesler yüklenmemişsesen sentetik ses kullan - BEKLEME!
+        // Bu, ilk ateşte lag'ı önlemek için önemli
+        if (!this.soundsLoaded || !this.soundBuffers[name]) {
+            // Arka planda sesleri yüklemeye devam et ama oyunu blocklama
+            if (this.soundLoadPromise && !this.soundsLoaded) {
+                this.soundLoadPromise.catch(() => {}); // Hataları sessizce yoksay
+            }
+            // Sentetik ses kullan
             this.createGunSound(800, 0.1, 'square');
             return;
         }
         
         // Ses dosyasini cal
-        console.log(`[Audio] Ses caliniyor: ${name}, buffer var: ${!!this.soundBuffers[name]}`);
         const source = this.context.createBufferSource();
         source.buffer = this.soundBuffers[name];
         source.connect(this.sfxGain);

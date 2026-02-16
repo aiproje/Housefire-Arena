@@ -188,13 +188,16 @@ class Bot {
             this.rightArm.add(this.flashlight.target);
             
             // Fener hedefini karakterin onune yerlestir
-            this.flashlight.target.position.set(0, -0.2, 5);
+            this.flashlight.target.position.set(0, 0, 5);
         } else {
             // Yedek: saga baglanamazsa scene'e ekle
             this.flashlight.position.set(0, 1.8, 0);
             this.scene.add(this.flashlight);
             this.scene.add(this.flashlight.target);
         }
+        
+        // Fener hedefini scene'e ekle ki world transform doğru çalışsın
+        this.scene.add(this.flashlight.target);
     }
     
     // Spawn noktasina yerles
@@ -777,12 +780,21 @@ class Bot {
     
     // Fener guncelleme
     updateFlashlight() {
-        // Fener artik kola bagli oldugu icin otomatik olarak karakterle birlikte doner
-        // Sadece hedef pozisyonunu guncel tut
-        if (this.flashlight && this.flashlight.target) {
-            // Hedefi karakterin onune yerlestir (local space'de)
-            this.flashlight.target.position.set(0, -0.2, 5);
-        }
+        if (!this.flashlight || !this.flashlight.target) return;
+        
+        // Fener hedefini karakterin bakış yönüne göre world space'de güncelle
+        const forwardX = Math.sin(this.rotation);
+        const forwardZ = Math.cos(this.rotation);
+        
+        // Fener hedefini karakterin önünde 5 birim uzağa yerleştir
+        this.flashlight.target.position.set(
+            this.position.x + forwardX * 5,
+            CONFIG.BOT_HEIGHT / 2 + 0.2, // Bot göz hizasında
+            this.position.z + forwardZ * 5
+        );
+        
+        // World transform'un güncellendiğinden emin ol
+        this.flashlight.target.updateMatrixWorld(true);
     }
     
     // Fener ac/kapat

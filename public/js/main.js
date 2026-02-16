@@ -8,6 +8,10 @@ class Game {
         this.camera = null;
         this.renderer = null;
         
+        // Raycaster havuzu (performans için)
+        this.raycaster = new THREE.Raycaster();
+        this.raycastDirection = new THREE.Vector3();
+        
         // Oyun bileenleri
         this.map = null;
         this.player = null;
@@ -612,6 +616,16 @@ class Game {
             bot.setFlashlightEnabled(enabled);
         });
         
+        // Işıklar açılınca tüm botları görünür yap
+        if (!enabled) {
+            this.botManager.bots.forEach(bot => {
+                if (bot.isAlive && bot.mesh) {
+                    bot.mesh.visible = true;
+                    bot.healthBar.visible = true;
+                }
+            });
+        }
+        
         // UI
         uiManager.showDarkModeIndicator(enabled);
     }
@@ -619,7 +633,10 @@ class Game {
     // Dark mode bot görünürlük kontrolü
     updateBotVisibility() {
         const FLASHLIGHT_RANGE = 15;  // Fener menzili
-        const playerPos = this.player.position;
+        const playerPos = this.player.position.clone();
+        // Raycaster'ı göz hizasında başlat (1.5m yukarıda)
+        playerPos.y = 1.5;
+        const walls = this.map.getWalls();
         
         this.botManager.bots.forEach(bot => {
             if (!bot.isAlive || !bot.mesh) return;
@@ -628,11 +645,10 @@ class Game {
             
             // Oyuncu fener menzilinde ve görüş hattında ise görünür
             if (distance < FLASHLIGHT_RANGE) {
-                // Basit görüş hattı kontrolü - duvar yoksa görünür
-                const direction = new THREE.Vector3().subVectors(bot.position, playerPos).normalize();
-                const raycaster = new THREE.Raycaster(playerPos, direction, 0, distance);
-                const walls = this.map.getWalls();
-                const intersects = raycaster.intersectObjects(walls, true);
+                // Raycaster'ı yeniden kullan - performans için önemli
+                this.raycastDirection.subVectors(bot.position, playerPos).normalize();
+                this.raycaster.set(playerPos, this.raycastDirection);
+                const intersects = this.raycaster.intersectObjects(walls, true);
                 
                 // Duvar yoksa görünür
                 if (intersects.length === 0) {

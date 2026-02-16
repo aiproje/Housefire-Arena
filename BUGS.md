@@ -15,3 +15,6 @@ buglar:
 [x] dış duvarlarla temas ettiğinde bug oluyor ve duvara yapışıyorsun sadece duvar hizasında hareket edebiliyorsun.
 [x] karakterlerin iki kolu da da dikey duruyor ve sağ kolunun arkasında feneri tutuyor. sol kolu aşağıya bakmalı sağ kolu karşıya bakmalı ve karşıya bakan yani ateş ettiği tarafta fener veya silah olmalı elinde.
 [x] odanın dışından odanın içindeki botları vurabiliyorum ve bu bir hata. duvarlar kurşun geçirmemeli!
+[x] oyun ilk açılışta, ölümlerde, il ateş etmede, ışık kapanıp açılma gibi durumlarda aşırı derecede kasıyor ve donuyor. detaylı bir optimizasyon gerekli. gerekirse efektler önceden yüklenmeli dom'a. 
+[x] fener karşıyı aydınlatması gerekirken yeri aydınlatıyor.
+[] ışıklar sönünce botlar fener mesafesinde olsa bile gözükmüyor.
